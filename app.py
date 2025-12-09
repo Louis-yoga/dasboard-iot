@@ -49,14 +49,16 @@ class Reading(db.Model):
     estimated_life = db.Column(db.String(50), default="-")
 
 
-# --- LOGIKA DETEKSI JAMUR (Visual) ---
+# --- DETEKSI JAMUR (Visual) ---
 def is_mold_detected(r, g, b, food_name):
-    # Cek Objek Kosong (Gelap)
+    # Hitung kecerahan rata-rata
     avg_brightness = (r + g + b) / 3
+
+    # 1. CEK OBJEK KOSONG / GELAP
     if avg_brightness < 20:
         return False
 
-    # Logika Nasi (Jamur Hijau/Biru/Gelap)
+    # 2. LOGIKA NASI (Putih vs Hijau/Biru)
     if "Nasi" in food_name:
         if g > r + 20:
             return True
@@ -65,61 +67,55 @@ def is_mold_detected(r, g, b, food_name):
         if avg_brightness < 60 and avg_brightness > 20:
             return True
 
-    # Logika Roti
+    # 3. LOGIKA ROTI
     if "Roti" in food_name:
         if g > r + 15 or b > r + 15:
             return True
 
-    # Logika Tempe
+    # 4. LOGIKA TEMPE
     if "Tempe" in food_name:
         if avg_brightness < 40 and avg_brightness > 15:
             return True
 
-    # Logika Daging/Ayam (SKIP WARNA MERAH)
-    # Ayam bakar bumbu rujak pasti MERAH (R tinggi). Jangan anggap itu bahaya.
-    # Kita hanya waspada jika daging jadi HIJAU/BIRU (Busuk parah/Jamur).
+    # 5. LOGIKA DAGING/AYAM
     if "Daging" in food_name:
-        if g > r + 30:
-            return True  # Hijau busuk
-        if b > r + 30:
-            return True  # Biru busuk
-
+        return False
     return False
 
 
-# --- LOGIKA ESTIMASI ---
+# --- ESTIMASI SISA WAKTU  ---
 def calculate_remaining_time(fqi, current_temp, profile):
     if fqi <= 50:
         return "0 Jam (Basi)"
 
     points_left = fqi - 50
-    decay_rate = 2
+    decay_rate = 1.5
+    temp_diff = profile.temp_crit - current_temp
 
-    if current_temp >= profile.temp_crit:
-        decay_rate = 20
-    elif current_temp >= (profile.temp_crit - 5):
-        decay_rate = 8
+    temp_factor = 1.0
+    if temp_diff <= 0:
+        temp_factor = 10.0
+    elif temp_diff <= 10:
+        temp_factor = 1.0 + (10 - temp_diff) * 0.5
 
+    decay_rate = decay_rate * temp_factor
+
+    # 4. Faktor Jenis Makanan
     p_name = profile.name.lower()
 
     if "tahu" in p_name:
-        decay_rate += 10
+        decay_rate *= 2.0
     elif "susu" in p_name:
-        decay_rate += 8
+        decay_rate *= 1.8
     elif "daging" in p_name:
-        # Daging berbumbu awet karena dimasak, decay rate moderat
-        decay_rate += 4
+        decay_rate *= 1.5
     elif "sayur" in p_name:
-        decay_rate += 5
-    elif "nasi" in p_name:
-        decay_rate += 4
-    elif "roti" in p_name:
-        decay_rate += 1
-    elif "tempe" in p_name:
-        decay_rate += 3
+        decay_rate *= 1.2
 
+    # 5. Hitung Estimasi
     hours_left = points_left / decay_rate
 
+    # Format Tampilan
     if hours_left < 1:
         minutes = int(hours_left * 60)
         return f"± {max(1, minutes)} Menit"
@@ -143,7 +139,7 @@ def calculate_fqi(mq, temp, hum, r, g, b, profile):
 
     if mq_ratio >= 1.0:
         return 0, "BASI (Gas)"
-    elif mq_ratio >= 0.8:  # Diperlonggar ke 80% untuk Daging Berbumbu
+    elif mq_ratio >= 0.8:
         return 55, "Mulai Basi"
 
     # 3. Cek Suhu
@@ -151,8 +147,6 @@ def calculate_fqi(mq, temp, hum, r, g, b, profile):
         return 52, "Rusak (Panas)"
 
     # 4. Hitung Skor
-    # Baseline gas 50.
-    # Untuk ayam bakar, gas 150-200 itu wajar (aroma).
     risk_mq = min((mq - 50) / (profile.mq135_crit - 50), 1)
     risk_mq = max(0, risk_mq)
 
@@ -168,6 +162,7 @@ def calculate_fqi(mq, temp, hum, r, g, b, profile):
         status_msg = "Mulai Basi"
         if final_score <= 50:
             final_score = 51
+
     return int(max(0, final_score)), status_msg
 
 
@@ -360,8 +355,7 @@ def init_db():
 
         profiles_data = [
             {"name": "Nasi Putih", "mq": 250, "temp": 35},
-            # UPGRADE DAGING UNTUK AYAM BAKAR
-            {"name": "Daging Sapi/Ayam", "mq": 800, "temp": 32},  # Naik ke 800 ppm
+            {"name": "Daging Sapi/Ayam", "mq": 800, "temp": 32},
             {"name": "Tahu", "mq": 350, "temp": 30},
             {"name": "Tempe", "mq": 650, "temp": 32},
             {"name": "Roti", "mq": 300, "temp": 30},

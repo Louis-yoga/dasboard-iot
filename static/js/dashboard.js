@@ -1,4 +1,4 @@
-const ACTIVE_DEVICE_ID = "ESP32_REAL_01"; // Pastikan sama dengan kode di ESP32
+const ACTIVE_DEVICE_ID = "ESP32_REAL_01";
 
 // --- SETUP CHART (GRAFIK) ---
 const ctx = document.getElementById('mainChart').getContext('2d');
@@ -17,7 +17,7 @@ const mainChart = new Chart(ctx, {
     },
     options: {
         responsive: true,
-        maintainAspectRatio: false, // Agar grafik full width responsif
+        maintainAspectRatio: false,
         animation: { duration: 0 },
         scales: {
             y: {
@@ -39,7 +39,6 @@ const mainChart = new Chart(ctx, {
 async function togglePower() {
     try {
         await fetch(`/api/device/${ACTIVE_DEVICE_ID}/toggle`, { method: 'POST' });
-        // UI saklar akan update otomatis lewat fungsi fetchData berikutnya
     } catch (error) {
         console.error("Gagal toggle power", error);
     }
@@ -87,7 +86,7 @@ async function fetchData() {
             document.getElementById('connectionStatus').innerText = "● Standby";
             document.getElementById('connectionStatus').className = "navbar-text text-warning fw-bold";
 
-            return; // HENTIKAN PROSES DISINI (JANGAN UPDATE GRAFIK)
+            return;
         }
 
         // === JIKA ALAT HIDUP (ON) - LANJUTKAN SEPERTI BIASA ===
@@ -188,7 +187,7 @@ async function updateHistoryTable() {
 
         const data = await response.json();
         const tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = ""; // Bersihkan tabel lama
+        tbody.innerHTML = "";
 
         if (data.length === 0) {
             tbody.innerHTML = "<tr><td colspan='7'>Belum ada data terekam.</td></tr>";
@@ -206,7 +205,6 @@ async function updateHistoryTable() {
                 badgeClass = "bg-success";
             }
 
-            // [BARU] Menambahkan kolom ke-7: Estimated Life
             const tr = `
                 <tr>
                     <td>${row.timestamp}</td>
@@ -233,7 +231,7 @@ function downloadCSV() {
 
 // --- INISIALISASI ---
 loadProfiles();
-setInterval(fetchData, 3000); // Refresh data sensor tiap 3 detik
-setInterval(updateHistoryTable, 5000); // Refresh tabel history tiap 5 detik
-fetchData(); // Panggil sekali saat load agar tidak kosong
+setInterval(fetchData, 3000);
+setInterval(updateHistoryTable, 5000);
+fetchData();
 updateHistoryTable();
