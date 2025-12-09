@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Food Monitor</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-5">
+        <div class="container">
+            <a class="navbar-brand brand-text" href="#">
+                <i class="fa-solid fa-seedling me-2"></i>IoT Food Guard
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-white small opacity-75">
+                    <i class="fa-solid fa-circle-dot me-1 text-success"></i> Kelompok 1
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Control Panel Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div
+                    class="control-panel d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+
+                    <!-- Bagian Kiri: Judul & Info -->
+                    <div>
+                        <h4 class="fw-bold mb-1">Monitoring Dashboard</h4>
+                        <p class="text-muted mb-0">Profil Aktif: <strong id="currentProfileName"
+                                class="text-dark">Loading...</strong></p>
+                    </div>
+
+                    <!-- Bagian Kanan: Kontrol (Saklar & Profil) -->
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="form-check form-switch custom-switch">
+                            <input class="form-check-input" type="checkbox" id="powerSwitch" onchange="togglePower()">
+                            <label class="form-check-label fw-bold" for="powerSwitch" id="powerLabel">ON</label>
+                        </div>
+                        <div class="vr mx-2"></div>
+                        <select id="profileSelect" class="form-select border-0 bg-light py-2" style="font-weight: 600;">
+                            <option>Loading...</option>
+                        </select>
+                        <button onclick="changeProfile()" class="btn btn-dark px-4"
+                            style="border-radius: 30px;">Set</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Cards Row (UPDATED: 4 Kolom) -->
+        <div class="row mb-4">
+            <!-- 1. FQI Card -->
+            <div class="col-md-3 mb-3">
+                <div class="stat-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="card-label">Kualitas (FQI)</div>
+                            <div class="card-value" id="fqiValue">--</div>
+                        </div>
+                        <div class="icon-box icon-fqi">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-secondary" id="statusBadge">Menunggu...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. [BARU] Estimasi Waktu Card -->
+            <div class="col-md-3 mb-3">
+                <div class="stat-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="card-label">Estimasi Tahan</div>
+                            <!-- ID ini akan diisi oleh JS -->
+                            <div class="card-value text-primary" style="font-size: 1.8rem;" id="estTimeValue">--</div>
+                        </div>
+                        <div class="icon-box" style="background: rgba(52, 152, 219, 0.2); color: #2980b9;">
+                            <i class="fa-solid fa-hourglass-half"></i>
+                        </div>
+                    </div>
+                    <p class="small text-muted mt-2 mb-0">Sebelum benar-benar basi</p>
+                </div>
+            </div>
+
+            <!-- 3. Gas Sensor Card -->
+            <div class="col-md-3 mb-3">
+                <div class="stat-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="card-label">Gas (MQ135)</div>
+                            <div class="card-value">
+                                <span id="mqValue">0</span>
+                            </div>
+                        </div>
+                        <div class="icon-box icon-gas">
+                            <i class="fa-solid fa-wind"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 6px; border-radius: 10px;">
+                        <div class="progress-bar bg-warning" id="mqBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Temp Sensor Card -->
+            <div class="col-md-3 mb-3">
+                <div class="stat-card h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="card-label">Suhu</div>
+                            <div class="card-value">
+                                <span id="tempValue">0</span>
+                            </div>
+                        </div>
+                        <div class="icon-box icon-temp">
+                            <i class="fa-solid fa-temperature-half"></i>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 6px; border-radius: 10px;">
+                        <div class="progress-bar bg-danger" id="tempBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="stat-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Tren Pembusukan
+                        </h5>
+                        <span class="badge bg-light text-dark border">Real-time (3s)</span>
+                    </div>
+                    <div style="position: relative; height: 350px; width: 100%;">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Table Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                    <h5 class="fw-bold"><i class="fa-solid fa-clock-rotate-left me-2"></i>Riwayat Data</h5>
+                    <button onclick="downloadCSV()" class="btn btn-outline-success btn-sm rounded-pill px-3">
+                        <i class="fa-solid fa-download me-2"></i>Export CSV
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom text-center">
+                        <thead>
+                            <tr>
+                                <th>Waktu</th>
+                                <th>Profil</th>
+                                <th>Gas (ppm)</th>
+                                <th>Suhu (°C)</th>
+                                <th>FQI</th>
+                                <th>Status</th>
+                                <th>Estimasi</th> <!-- Kolom Baru -->
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="7" class="text-muted py-4">Memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+
+</body>
+
+</html>
