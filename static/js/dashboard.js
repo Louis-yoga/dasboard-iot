@@ -1,4 +1,4 @@
-const ACTIVE_DEVICE_ID = "ESP32_REAL_01";
+const ACTIVE_DEVICE_ID = "ESP32_SIMULATOR";
 
 // --- SETUP CHART (GRAFIK) ---
 const ctx = document.getElementById('mainChart').getContext('2d');
